@@ -29,3 +29,4 @@ Thumbs.db  # Windows
 .vscode/*
 
 imageforllm.egg-info/
+build.bat

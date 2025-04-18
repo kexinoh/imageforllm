@@ -19,7 +19,7 @@ from ._hook import hook_image_save, unhook_image_save
 from ._metadata import get_image_info, METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES
 from .extract import main as extract_main
 
-__version__ = "0.3.1"  # Increment version for the new feature
+__version__ = "0.3.2"  
 
 __all__ = [
     "hook_image_save",

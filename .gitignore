@@ -1,0 +1,29 @@
+# Ignore the virtual environment directory
+.venv/
+
+# Ignore packaging/build directories
+dist/
+build/
+
+# Byte-code files
+*.pyc
+__pycache__/
+
+# mypy cache
+.mypy_cache/
+
+# pytest cache
+.pytest_cache/
+
+# Temporary files often created by editors
+*~
+
+# Operating system files (optional, but common)
+.DS_Store  # macOS
+Thumbs.db  # Windows
+
+# Ignore all files in the .idea directory
+.idea/*
+
+# Ignore all files in the .vscode directory
+.vscode/*

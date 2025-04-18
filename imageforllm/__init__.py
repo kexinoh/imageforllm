@@ -16,10 +16,10 @@ except ImportError:
 
 # Import using absolute imports to ensure we always import from the correct location
 from ._hook import hook_image_save, unhook_image_save
-from ._metadata import get_image_info, METADATA_KEY_CODE, METADATA_KEY_PROPERTIES
+from ._metadata import get_image_info, METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES
 from .extract import main as extract_main
 
-__version__ = "0.3.0"  # Increment version for the new feature
+__version__ = "0.3.1"  # Increment version for the new feature
 
 __all__ = [
     "hook_image_save",
@@ -27,6 +27,6 @@ __all__ = [
     "get_image_info",
     "extract_main",
     "__version__",
-    "METADATA_KEY_CODE", 
+    "METADATA_KEY_COMMENT", 
     "METADATA_KEY_PROPERTIES",
 ] 

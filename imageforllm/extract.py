@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Command-line tool to extract code embedded in images created with imageforllm
+Command-line tool to extract comment and plot properties embedded in images created with imageforllm
 """
 
 import argparse
 import sys
 import os
 import json
-from ._metadata import get_image_info, METADATA_KEY_CODE, METADATA_KEY_PROPERTIES
+from ._metadata import get_image_info, METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES
 
 def main():
     """Main entry point for the command-line tool."""
     parser = argparse.ArgumentParser(
-        description="Extract code and plot properties embedded in images created with imageforllm"
+        description="Extract comment and plot properties embedded in images created with imageforllm"
     )
     parser.add_argument(
         "image_file", 
@@ -20,12 +20,12 @@ def main():
     )
     parser.add_argument(
         "-o", "--output", 
-        help="Output file to save the extracted code (default: print to stdout)"
+        help="Output file to save the extracted comment (default: print to stdout)"
     )
     parser.add_argument(
         "-i", "--info", 
         action="store_true",
-        help="Print all metadata, not just the code"
+        help="Print all metadata, not just the comment"
     )
     parser.add_argument(
         "-p", "--properties",
@@ -64,11 +64,11 @@ def main():
                 print(f"No plot properties found in '{args.image_file}'", file=sys.stderr)
                 sys.exit(1)
         else:
-            # Default is code
-            if 'source_code' in info or METADATA_KEY_CODE in info:
-                output_data = {'code': info.get('source_code', info.get(METADATA_KEY_CODE, ""))}
+            # Default is comment
+            if 'source_comment' in info or METADATA_KEY_COMMENT in info:
+                output_data = {'comment': info.get('source_comment', info.get(METADATA_KEY_COMMENT, ""))}
             else:
-                print(f"No code found in '{args.image_file}'", file=sys.stderr)
+                print(f"No comment found in '{args.image_file}'", file=sys.stderr)
                 sys.exit(1)
         
         # Format and output the JSON
@@ -110,17 +110,17 @@ def main():
             else:
                 print(json.dumps(properties, indent=2))
         else:
-            # Print just the code (default)
-            code = info.get('source_code', info.get(METADATA_KEY_CODE, None))
-            if not code:
-                print(f"No code found in '{args.image_file}'", file=sys.stderr)
+            # Print just the comment (default)
+            comment = info.get('source_comment', info.get(METADATA_KEY_COMMENT, None))
+            if not comment:
+                print(f"No comment found in '{args.image_file}'", file=sys.stderr)
                 sys.exit(1)
                 
             if args.output:
                 with open(args.output, "w", encoding="utf-8") as f:
-                    f.write(code)
+                    f.write(comment)
             else:
-                print(code)
+                print(comment)
     
     return 0
 

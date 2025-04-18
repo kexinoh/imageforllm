@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Import metadata functions
 from ._metadata import _embed_metadata_in_png, _extract_plot_properties
-from ._metadata import METADATA_KEY_CODE, METADATA_KEY_PROPERTIES
+from ._metadata import METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES
 
 # Global variables to track the hook state
 _original_savefig = None
@@ -70,7 +70,7 @@ def _savefig_with_metadata(fig, fname, *args, create_comment=None, **kwargs):
     
     # 1. Add user-provided create_comment (if any)
     if create_comment is not None:
-        metadata_to_embed[METADATA_KEY_CODE] = str(create_comment)
+        metadata_to_embed[METADATA_KEY_COMMENT] = str(create_comment)
     
     # 2. Automatically extract plot properties
     try:

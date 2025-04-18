@@ -11,7 +11,7 @@ import warnings
 from PIL import Image, PngImagePlugin
 
 # Define unique keys for our metadata
-METADATA_KEY_CODE = "imageforllm:source_code"
+METADATA_KEY_COMMENT = "imageforllm:source_comment"
 METADATA_KEY_PROPERTIES = "imageforllm:plot_properties"
 
 def _embed_metadata_in_png(image_bytes_io, output_path, metadata_dict):
@@ -207,15 +207,15 @@ def get_image_info(image_path):
                     warnings.warn(f"Error processing JSON metadata from {image_path}: {e_load}")
 
             # Fallback/Compatibility: Check for old simple keys
-            if METADATA_KEY_CODE in img.info and 'source_code' not in metadata:
-                metadata['source_code'] = img.info[METADATA_KEY_CODE]
+            if METADATA_KEY_COMMENT in img.info and 'source_comment' not in metadata:
+                metadata['source_comment'] = img.info[METADATA_KEY_COMMENT]
                 
             # For backwards compatibility, support the old 'code' key too
-            if 'imageforllm' in img.info and 'source_code' not in metadata:
+            if 'imageforllm' in img.info and 'source_comment' not in metadata:
                 try:
                     legacy_info = json.loads(img.info['imageforllm'])
-                    if 'code' in legacy_info:
-                        metadata['source_code'] = legacy_info['code']
+                    if 'comment' in legacy_info:
+                        metadata['source_comment'] = legacy_info['comment']
                 except (json.JSONDecodeError, TypeError):
                     pass
 
@@ -239,4 +239,4 @@ def get_image_info(image_path):
     return metadata
 
 # Expose public functions
-__all__ = ['get_image_info', 'METADATA_KEY_CODE', 'METADATA_KEY_PROPERTIES'] 
+__all__ = ['get_image_info', 'METADATA_KEY_COMMENT', 'METADATA_KEY_PROPERTIES'] 

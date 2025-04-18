@@ -3,9 +3,9 @@ Simplified Example Script for imageforllm
 
 This script demonstrates the basic workflow:
 1. Hooking matplotlib's savefig.
-2. Defining the plot source code as a string.
+2. Defining the plot source comment as a string.
 3. Generating a matplotlib plot.
-4. Saving the plot with the embedded source code and auto-extracted properties.
+4. Saving the plot with the embedded source comment and auto-extracted properties.
 5. Reading the metadata back from the saved image file.
 6. Unhooking savefig (optional cleanup).
 
@@ -20,7 +20,7 @@ import os        # To check if the file exists and for output filename
 # --- Step 1: Import imageforllm ---
 # This assumes the package is installed (e.g., via pip install imageforllm).
 try:
-    import imageforllm_test as imageforllm
+    import imageforllm
     print(f"Successfully imported imageforllm package (Version: {imageforllm.__version__}).")
 except ImportError:
     print("Error: imageforllm package not found.")
@@ -39,17 +39,17 @@ print("matplotlib.pyplot.savefig is now hooked by imageforllm.")
 print("-" * 40)
 
 
-print("Step 3: Defining plot source code as a string and generating the plot")
+print("Step 3: Defining plot source comment as a string and generating the plot")
 
-# --- Step 3a: Define the source code for your plot as a string ---
-# imageforllm requires you to provide the code string. It cannot reliably
+# --- Step 3a: Define the source comment for your plot as a string ---
+# imageforllm requires you to provide the comment string. It cannot reliably
 # and automatically determine the exact sequence of calls that created
 # your plot from the execution history.
 #
 # Use textwrap.dedent() to handle indentation if you define the string
 # directly in your code like this.
 plot_source_create_comment = textwrap.dedent("""
-# This is the source code used to generate the plot below.
+# This is the source comment used to generate the plot below.
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -74,10 +74,10 @@ ax.set_ylabel('Amplitude')
 ax.grid(True, which='both', linestyle=':', linewidth=0.5)
 ax.legend(loc='upper right')
 
-# Note: The savefig call itself is NOT part of the embedded code string.
+# Note: The savefig call itself is NOT part of the embedded comment string.
 """).strip() # .strip() removes potential leading/trailing blank lines
 
-print("Defined the plot source code as a string.")
+print("Defined the plot source comment as a string.")
 
 # --- Step 3b: Generate the actual plot using matplotlib ---
 # You must run the plotting commands to create the Figure and Axes objects
@@ -117,12 +117,12 @@ print(f"Saving plot to '{output_image_filename}'...")
 
 # Call the savefig method on the figure object (or use plt.savefig if it's the current figure).
 # The imageforllm hook intercepts this call.
-# Pass the 'create_comment' keyword argument with your plot's source code string.
+# Pass the 'create_comment' keyword argument with your plot's source comment string.
 # imageforllm will also automatically extract basic plot properties (titles, labels, etc.)
-# and embed them alongside the code string (primarily for PNG format when saving to a file path).
+# and embed them alongside the comment string (primarily for PNG format when saving to a file path).
 try:
     fig.savefig(output_image_filename,
-                create_comment=plot_source_create_comment, # Embed the code string
+                create_comment=plot_source_create_comment, # Embed the comment string
                 bbox_inches='tight',                  # Optional: adjust layout
                 format='png')                         # Optional: explicitly set format (PNG is recommended for metadata)
 
@@ -151,14 +151,14 @@ else:
             print("\n--- Successfully Extracted Metadata ---")
 
             # The metadata is returned as a dictionary.
-            # The source code is stored under imageforllm.METADATA_KEY_CODE.
-            source_code = extracted_metadata.get(imageforllm.METADATA_KEY_CODE)
-            if source_code:
-                print(f"\nEmbedded Source Code (Key: '{imageforllm.METADATA_KEY_CODE}'):")
-                print(source_code)
+            # The source comment is stored under imageforllm.METADATA_KEY_COMMENT.
+            source_comment = extracted_metadata.get(imageforllm.METADATA_KEY_COMMENT)
+            if source_comment:
+                print(f"\nEmbedded Source Comment (Key: '{imageforllm.METADATA_KEY_COMMENT}'):")
+                print(source_comment)
                 print("-" * 20)
             else:
-                print("\nNo source code metadata found (was 'create_comment' provided during save?).")
+                print("\nNo source comment metadata found (was 'create_comment' provided during save?).")
 
             # Auto-extracted plot properties are stored under imageforllm.METADATA_KEY_PROPERTIES.
             plot_properties = extracted_metadata.get(imageforllm.METADATA_KEY_PROPERTIES)

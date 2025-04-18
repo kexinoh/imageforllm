@@ -1,0 +1,30 @@
+# pyproject.toml
+
+[build-system]
+# Tells build tools to use setuptools as the build backend, requires setuptools >= 61.0
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imageforllm"  # Must be unique on PyPI
+version = "0.3.0"
+description = "A library for embedding code and plot properties into matplotlib images for LLM context"
+readme = "README.md"
+license = { file="LICENSE" }
+keywords = ["matplotlib", "image", "metadata", "llm"]
+authors = [
+  { name="kexinoh", email="findmykexin@gmail.com" }, 
+]
+maintainers = [
+   { name="kexinoh", email="findmykexin@gmail.com" }, 
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+
+
+

@@ -1,5 +1,7 @@
 # ImageForLLM
 
+[English](README.md) | [中文](README_zh.md)
+
 A free lunch for LLM recognition images
 
 

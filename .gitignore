@@ -27,3 +27,5 @@ Thumbs.db  # Windows
 
 # Ignore all files in the .vscode directory
 .vscode/*
+
+imageforllm.egg-info/

@@ -146,4 +146,4 @@ See the included `examples/saveandread.py` for a complete example of saving and 
 
 ## License 📄
 
-[License information]
+MIT

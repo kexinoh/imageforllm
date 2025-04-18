@@ -143,4 +143,4 @@ python -m imageforllm.extract sine_wave_plot.png -o extracted_code.py
 
 ## 许可证 📄
 
-[许可证信息] 
+MIT

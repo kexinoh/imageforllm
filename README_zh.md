@@ -1,14 +1,17 @@
-# ImageForLLM
+# ImageForLLM 🖼️
 
 [English](README.md) | [中文](README_zh.md)
 
-为LLM提供图像识别的免费午餐
+为LLM提供图像识别的免费午餐 🍱
 
-## 概述
+[![Python 3](https://img.shields.io/badge/python-3+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 概述 🔍
 
 ImageForLLM能够将源代码和图表属性嵌入到matplotlib图像中，特别适用于与大型语言模型（LLMs）共享图表。这使LLM能够理解图表是如何生成的以及它代表什么。
 
-## 简易使用
+## 简易使用 ✨
 
 只需**两行**代码，它就可以自动将生成图像的信息添加到matplotlib生成的图像元数据中，无需任何额外操作。
 
@@ -19,7 +22,7 @@ import imageforllm
 imageforllm.hook_image_save()
 ```
 
-## 安装
+## 安装 📦
 
 ```bash
 pip install imageforllm
@@ -31,14 +34,14 @@ pip install imageforllm
 pip install Pillow
 ```
 
-## 功能特点
+## 功能特点 ✅
 
 - 将生成图表的源代码嵌入到图像元数据中
 - 自动提取并嵌入图表属性（标题、标签等）
 - 从图像中提取嵌入的代码和属性
 - 用于从图像提取元数据的命令行工具
 
-## 使用方法
+## 使用方法 🚀
 
 ### 基本工作流程
 
@@ -70,7 +73,7 @@ plt.savefig('sine_wave_plot.png', create_comment=plot_source_code)
 imageforllm.unhook_image_save()
 ```
 
-### 提取元数据
+### 提取元数据 🔄
 
 ```python
 import imageforllm
@@ -87,7 +90,7 @@ properties = info.get(imageforllm.METADATA_KEY_PROPERTIES)
 print(properties)
 ```
 
-### 命令行提取
+### 命令行提取 🖥️
 
 该包包含一个用于提取元数据的命令行工具：
 
@@ -108,24 +111,24 @@ python -m imageforllm.extract sine_wave_plot.png --json
 python -m imageforllm.extract sine_wave_plot.png -o extracted_code.py
 ```
 
-## 局限性
+## 局限性 ⚠️
 
 - 元数据嵌入主要支持PNG格式
 - 当保存到类文件对象时，不支持元数据嵌入
 - 该包不能自动确定生成图表的代码；您必须以字符串形式提供
 
-## 工作原理
+## 工作原理 🔧
 
 1. 该包钩住matplotlib的`savefig`函数
 2. 保存时，它捕获任何提供的源代码并自动提取图表属性
 3. 它使用Pillow将这些元数据嵌入到PNG图像中
 4. 稍后可以使用提供的函数或命令行工具从图像中提取元数据
 
-## 示例
+## 示例 📝
 
 请参见包含的`examples/saveandread.py`，了解保存和读取元数据的完整示例。
 
-## API参考
+## API参考 📚
 
 ### 主要函数
 
@@ -138,6 +141,6 @@ python -m imageforllm.extract sine_wave_plot.png -o extracted_code.py
 - `METADATA_KEY_CODE`：元数据字典中源代码的键
 - `METADATA_KEY_PROPERTIES`：元数据字典中图表属性的键
 
-## 许可证
+## 许可证 📄
 
 [许可证信息] 

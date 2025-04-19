@@ -59,6 +59,7 @@ import imageforllm
 imageforllm.hook_image_save()
 
 # 2. Define your plot comment as a string
+# This is not necessary.
 plot_source_comment = """
 It make work for a wave plot.
 """

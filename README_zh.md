@@ -56,6 +56,7 @@ import imageforllm
 imageforllm.hook_image_save()
 
 # 2. 将你的图表注释定义为字符串
+# 这不是必须的
 plot_source_comment = """
 它适用于波形图。
 """
@@ -64,9 +65,9 @@ plot_source_comment = """
 x = np.linspace(0, 10, 100)
 y = np.sin(x)
 plt.plot(x, y)
-plt.title('正弦波')
-plt.xlabel('时间')
-plt.ylabel('振幅')
+plt.title('Sine Wave')
+plt.xlabel('Time')
+plt.ylabel('Amplitude')
 
 # 4. 保存时嵌入注释和自动提取的属性
 plt.savefig('sine_wave_plot.png', create_comment=plot_source_comment)

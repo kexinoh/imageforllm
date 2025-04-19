@@ -13,6 +13,9 @@ from PIL import Image, PngImagePlugin
 # Define unique keys for our metadata
 METADATA_KEY_COMMENT = "imageforllm:source_comment"
 METADATA_KEY_PROPERTIES = "imageforllm:plot_properties"
+METADATA_KEY_AI_MODEL = "imageforllm:ai_model"
+METADATA_KEY_PROMPT = "imageforllm:prompt"
+METADATA_KEY_PARAMETERS = "imageforllm:parameters"
 
 def _embed_metadata_in_png(image_bytes_io, output_path, metadata_dict):
     """
@@ -181,9 +184,11 @@ def get_image_info(image_path):
         A dictionary containing extracted metadata. Returns an empty
         dictionary if the file is not found, not an image, or contains
         no imageforllm metadata.
-        The source code, if found, will be under the key 'source_code'.
+        The source code, if found, will be under the key 'source_comment'.
         Automatically extracted plot properties, if found, will be under
         the key 'plot_properties'.
+        AI model information, if found, will be under keys 'ai_model', 'prompt', 
+        and 'parameters'.
     """
     metadata = {}
     img = None
@@ -224,6 +229,19 @@ def get_image_info(image_path):
                     metadata['plot_properties'] = json.loads(img.info[METADATA_KEY_PROPERTIES])
                 except (json.JSONDecodeError, TypeError):
                     metadata['plot_properties'] = img.info[METADATA_KEY_PROPERTIES]
+                    
+            # Check for AI-related metadata
+            if METADATA_KEY_AI_MODEL in img.info and 'ai_model' not in metadata:
+                metadata['ai_model'] = img.info[METADATA_KEY_AI_MODEL]
+                
+            if METADATA_KEY_PROMPT in img.info and 'prompt' not in metadata:
+                metadata['prompt'] = img.info[METADATA_KEY_PROMPT]
+                
+            if METADATA_KEY_PARAMETERS in img.info and 'parameters' not in metadata:
+                try:
+                    metadata['parameters'] = json.loads(img.info[METADATA_KEY_PARAMETERS])
+                except (json.JSONDecodeError, TypeError):
+                    metadata['parameters'] = img.info[METADATA_KEY_PARAMETERS]
 
         else:
             warnings.warn(f"Metadata extraction currently fully supported only for PNG with embedded info. Image format is {img.format}.")
@@ -238,5 +256,114 @@ def get_image_info(image_path):
 
     return metadata
 
+def add_ai_metadata(image_path, model, prompt, parameters=None):
+    """
+    Adds AI image generation metadata to an existing image file.
+    
+    Args:
+        image_path: The path to the image file.
+        model: The name/version of the AI model used to generate the image.
+        prompt: The prompt text used to generate the image.
+        parameters: Optional dictionary of additional generation parameters (e.g., seeds, styles).
+        
+    Returns:
+        bool: True if metadata was successfully added, False otherwise.
+    """
+    img = None
+    metadata_dict = {}
+    try:
+        if not os.path.exists(image_path):
+            warnings.warn(f"Image file not found: {image_path}")
+            return False
+            
+        img = Image.open(image_path)
+        
+        if img.format != 'PNG':
+            warnings.warn(f"Metadata embedding is primarily supported for PNG format. The image format is {img.format}.")
+            return False
+            
+        # Prepare metadata
+        metadata_dict[METADATA_KEY_AI_MODEL] = model
+        metadata_dict[METADATA_KEY_PROMPT] = prompt
+        if parameters:
+            metadata_dict[METADATA_KEY_PARAMETERS] = parameters
+            
+        # Save existing metadata if any
+        existing_info = {}
+        if "imageforllm:metadata" in img.info:
+            try:
+                existing_info = json.loads(img.info["imageforllm:metadata"])
+            except json.JSONDecodeError:
+                warnings.warn("Failed to decode existing metadata, will overwrite.")
+            except Exception as e:
+                warnings.warn(f"Error processing existing metadata: {e}, will overwrite.")
+        
+        # Update with AI metadata
+        existing_info.update(metadata_dict)
+        
+        # Create temp buffer and save original image
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        
+        # Embed updated metadata and save
+        _embed_metadata_in_png(buffer, image_path, existing_info)
+        
+        return True
+        
+    except Exception as e:
+        warnings.warn(f"Failed to add AI metadata to {image_path}: {e}")
+        return False
+    finally:
+        if img:
+            img.close()
+
+def extract_ai_metadata(image_path):
+    """
+    Extracts AI-specific metadata from an image file.
+    
+    Args:
+        image_path: The path to the image file.
+        
+    Returns:
+        dict: A dictionary containing AI metadata (model, prompt, parameters).
+              Returns an empty dictionary if no AI metadata is found.
+    """
+    all_info = get_image_info(image_path)
+    ai_metadata = {}
+    
+    if 'ai_model' in all_info:
+        ai_metadata['model'] = all_info['ai_model']
+    
+    if 'prompt' in all_info:
+        ai_metadata['prompt'] = all_info['prompt']
+        
+    if 'parameters' in all_info:
+        ai_metadata['parameters'] = all_info['parameters']
+        
+    return ai_metadata
+
+def get_all_metadata_json(image_path):
+    """
+    Extracts all metadata from an image and returns it as a JSON-serializable dictionary.
+    
+    Args:
+        image_path: The path to the image file.
+        
+    Returns:
+        dict: A dictionary containing all metadata, suitable for JSON serialization.
+              Returns an empty dictionary if no metadata is found.
+    """
+    metadata = get_image_info(image_path)
+    
+    # Convert any complex types to strings for JSON compatibility if needed
+    for key, value in metadata.items():
+        if not isinstance(value, (str, int, float, bool, dict, list, type(None))):
+            metadata[key] = str(value)
+            
+    return metadata
+
 # Expose public functions
-__all__ = ['get_image_info', 'METADATA_KEY_COMMENT', 'METADATA_KEY_PROPERTIES'] 
+__all__ = ['get_image_info', 'add_ai_metadata', 'extract_ai_metadata', 
+           'get_all_metadata_json', 'METADATA_KEY_COMMENT', 
+           'METADATA_KEY_PROPERTIES', 'METADATA_KEY_AI_MODEL',
+           'METADATA_KEY_PROMPT', 'METADATA_KEY_PARAMETERS'] 

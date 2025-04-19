@@ -10,7 +10,7 @@ A free lunch for LLM recognition images 🍱
 
 ## Overview 🔍
 
-ImageForLLM enables embedding source comment and plot properties into matplotlib images, particularly useful when sharing plots with Large Language Models (LLMs). This allows the LLM to understand how the plot was generated and what it represents.
+ImageForLLM enables embedding source comment and plot properties into matplotlib images, particularly useful when sharing plots with Large Language Models (LLMs). This allows the LLM to understand how the plot was generated and what it represents. It also supports adding metadata to AI-generated images for better context.
 
 ## Easyuse ✨
 
@@ -41,12 +41,14 @@ pip install Pillow
 
 - Embed source comment that generated a plot into the image metadata
 - Automatically extract and embed plot properties (titles, labels, etc.)
-- Extract embedded comment and properties from images
-- Command-line tool for extracting metadata from images
+- Add AI generation metadata (model, prompt, parameters) to AI-generated images
+- Extract embedded comment, properties, and AI metadata from images
+- Command-line tools for extracting metadata from images and adding AI metadata
+- Get all metadata as JSON for easy integration with other tools
 
 ## Usage 🚀
 
-### Basic Workflow
+### Basic Workflow for Matplotlib
 
 ```python
 import matplotlib.pyplot as plt
@@ -76,42 +78,79 @@ plt.savefig('sine_wave_plot.png', create_comment=plot_source_comment)
 imageforllm.unhook_image_save()
 ```
 
+### Adding AI Metadata to Images
+
+```python
+import imageforllm
+
+# Add AI generation metadata to an existing image
+model = "stable-diffusion-xl-1.0"
+prompt = "A serene mountain landscape with a lake reflecting the sunset"
+parameters = {
+    "seed": 42,
+    "guidance_scale": 7.5,
+    "num_inference_steps": 50
+}
+
+imageforllm.add_ai_metadata('ai_generated_image.png', model, prompt, parameters)
+```
+
 ### Extracting Metadata 🔄
 
 ```python
 import imageforllm
 
-# Get metadata from an image
-info = imageforllm.get_image_info('sine_wave_plot.png')
+# Get all metadata from an image as a JSON-serializable dictionary
+all_info = imageforllm.get_all_metadata_json('image.png')
 
 # Access embedded comment
-comment = info.get(imageforllm.METADATA_KEY_comment)
+comment = all_info.get('source_comment')
 print(comment)
 
 # Access plot properties
-properties = info.get(imageforllm.METADATA_KEY_PROPERTIES)
+properties = all_info.get('plot_properties')
 print(properties)
+
+# Access AI metadata
+ai_model = all_info.get('ai_model')
+prompt = all_info.get('prompt')
+parameters = all_info.get('parameters')
+print(f"Model: {ai_model}, Prompt: {prompt}")
+
+# Extract only AI-specific metadata
+ai_metadata = imageforllm.extract_ai_metadata('ai_generated_image.png')
+print(ai_metadata)
 ```
 
 ### Command-line Extraction 🖥️
 
-The package includes a command-line tool for extracting metadata:
+The package includes command-line tools for working with metadata:
 
 ```bash
 # Extract and print comment
-python -m imageforllm.extract sine_wave_plot.png
+python -m imageforllm.extract image.png
 
 # Extract and print all metadata
-python -m imageforllm.extract sine_wave_plot.png --info
+python -m imageforllm.extract image.png --info
 
 # Extract only plot properties
-python -m imageforllm.extract sine_wave_plot.png --properties
+python -m imageforllm.extract image.png --properties
+
+# Extract only AI metadata
+python -m imageforllm.extract image.png --ai
 
 # Output in JSON format
-python -m imageforllm.extract sine_wave_plot.png --json
+python -m imageforllm.extract image.png --json
 
 # Save extracted comment to a file
-python -m imageforllm.extract sine_wave_plot.png -o extracted_comment.py
+python -m imageforllm.extract image.png -o extracted_comment.py
+```
+
+### Adding AI Metadata via Command Line
+
+```bash
+# Add AI metadata to an image
+python -m imageforllm.ai_metadata image.png --model "stable-diffusion" --prompt "mountain landscape" --parameters '{"seed": 42}'
 ```
 
 ## Limitations ⚠️
@@ -125,11 +164,12 @@ python -m imageforllm.extract sine_wave_plot.png -o extracted_comment.py
 1. The package hooks matplotlib's `savefig` function
 2. When saving, it captures any provided source comment and automatically extracts plot properties
 3. It embeds this metadata into the PNG image using Pillow
-4. Metadata can later be extracted from the image using the provided functions or command-line tool
+4. For AI-generated images, you can add model, prompt, and parameter information
+5. Metadata can later be extracted from the image using the provided functions or command-line tools
 
 ## Example 📝
 
-See the included `examples/saveandread.py` for a complete example of saving and reading metadata.
+See the included `examples/saveandread.py` for an example of saving and reading metadata, and `examples/ai_metadata_example.py` for working with AI-generated images.
 
 ## API Reference 📚
 
@@ -138,11 +178,17 @@ See the included `examples/saveandread.py` for a complete example of saving and 
 - `hook_image_save()`: Replaces matplotlib's savefig with a version that embeds metadata
 - `unhook_image_save()`: Restores the original savefig function
 - `get_image_info(image_path)`: Extracts metadata from an image file
+- `get_all_metadata_json(image_path)`: Gets all ImageForLLM-specific metadata (source comment, plot properties, and AI metadata) as a JSON-serializable dictionary. Only returns metadata defined in this library, not any other image data.
+- `add_ai_metadata(image_path, model, prompt, parameters=None)`: Adds AI generation metadata to an image
+- `extract_ai_metadata(image_path)`: Extracts only AI-specific metadata from an image
 
 ### Constants
 
 - `METADATA_KEY_COMMENT`: Key for source comment in metadata dictionary
 - `METADATA_KEY_PROPERTIES`: Key for plot properties in metadata dictionary
+- `METADATA_KEY_AI_MODEL`: Key for AI model information
+- `METADATA_KEY_PROMPT`: Key for generation prompt
+- `METADATA_KEY_PARAMETERS`: Key for additional parameters
 
 ## License 📄
 

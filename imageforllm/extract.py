@@ -7,7 +7,11 @@ import argparse
 import sys
 import os
 import json
-from ._metadata import get_image_info, METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES
+from ._metadata import (
+    get_image_info, get_all_metadata_json, extract_ai_metadata,
+    METADATA_KEY_COMMENT, METADATA_KEY_PROPERTIES,
+    METADATA_KEY_AI_MODEL, METADATA_KEY_PROMPT, METADATA_KEY_PARAMETERS
+)
 
 def main():
     """Main entry point for the command-line tool."""
@@ -37,6 +41,11 @@ def main():
         action="store_true",
         help="Output metadata in JSON format"
     )
+    parser.add_argument(
+        "--ai",
+        action="store_true",
+        help="Print only the AI generation metadata"
+    )
     
     args = parser.parse_args()
     
@@ -56,12 +65,19 @@ def main():
     if args.json:
         # JSON output format
         if args.info:
-            output_data = info
+            output_data = get_all_metadata_json(args.image_file)
         elif args.properties:
             if 'plot_properties' in info or METADATA_KEY_PROPERTIES in info:
                 output_data = info.get('plot_properties', info.get(METADATA_KEY_PROPERTIES, {}))
             else:
                 print(f"No plot properties found in '{args.image_file}'", file=sys.stderr)
+                sys.exit(1)
+        elif args.ai:
+            ai_data = extract_ai_metadata(args.image_file)
+            if ai_data:
+                output_data = ai_data
+            else:
+                print(f"No AI metadata found in '{args.image_file}'", file=sys.stderr)
                 sys.exit(1)
         else:
             # Default is comment
@@ -109,6 +125,18 @@ def main():
                     f.write(json.dumps(properties, indent=2))
             else:
                 print(json.dumps(properties, indent=2))
+        elif args.ai:
+            # Print just the AI metadata
+            ai_metadata = extract_ai_metadata(args.image_file)
+            if not ai_metadata:
+                print(f"No AI metadata found in '{args.image_file}'", file=sys.stderr)
+                sys.exit(1)
+                
+            if args.output:
+                with open(args.output, "w", encoding="utf-8") as f:
+                    f.write(json.dumps(ai_metadata, indent=2))
+            else:
+                print(json.dumps(ai_metadata, indent=2))
         else:
             # Print just the comment (default)
             comment = info.get('source_comment', info.get(METADATA_KEY_COMMENT, None))

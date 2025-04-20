@@ -42,6 +42,7 @@ pip install Pillow
 - 从图像中提取嵌入的注释、属性和AI元数据
 - 用于从图像提取元数据和添加AI元数据的命令行工具
 - 以JSON格式获取所有元数据，便于与其他工具集成
+- **新功能**：通过专用函数直接支持处理图像字节对象（来自base64或URLs）
 
 ## 使用方法 🚀
 
@@ -81,7 +82,7 @@ imageforllm.unhook_image_save()
 ```python
 import imageforllm
 
-# 为现有图像添加AI生成元数据
+# 为现有图像文件添加AI生成元数据
 model = "stable-diffusion-xl-1.0"
 prompt = "一个宁静的山水景观，湖面倒映着夕阳"
 parameters = {
@@ -91,6 +92,45 @@ parameters = {
 }
 
 imageforllm.add_ai_metadata('ai_generated_image.png', model, prompt, parameters)
+```
+
+### 处理图像字节对象
+
+对于直接处理图像字节（来自base64、URL等），您可以使用专用的字节特定函数：
+
+```python
+import imageforllm
+import base64
+import requests
+import io
+
+# 示例1：处理base64编码的图像
+base64_data = "..." # 你的base64编码图像数据
+img_bytes = base64.b64decode(base64_data)
+
+# 使用字节特定函数从字节中提取元数据
+metadata = imageforllm.get_all_metadata_json_from_bytes(img_bytes)
+print(metadata)
+
+# 向字节添加元数据并获取BytesIO结果
+result_buffer = imageforllm.add_ai_metadata_to_bytes(
+    img_bytes,
+    model="stable-diffusion-xl",
+    prompt="城市天际线",
+    parameters={"seed": 123}
+)
+# result_buffer是一个可以直接使用的BytesIO对象
+modified_bytes = result_buffer.getvalue()
+
+# 如果需要，将修改后的字节保存到文件
+with open("output_image.png", "wb") as f:
+    f.write(modified_bytes)
+
+# 示例2：处理来自URL的图像
+response = requests.get("https://github.com/kexinoh/imageforllm/blob/main/examples/aigirl_with_metadata.png?raw=true")
+img_data = response.content
+ai_metadata = imageforllm.extract_ai_metadata_from_bytes(img_data)
+print(ai_metadata)
 ```
 
 ### 提取元数据 🔄
@@ -167,18 +207,28 @@ python -m imageforllm.ai_metadata image.png --model "stable-diffusion" --prompt 
 
 ## 示例 📝
 
-请参见包含的`examples/saveandread.py`，了解保存和读取元数据的示例，以及`examples/ai_metadata_example.py`，了解如何处理AI生成的图像。
+请参见包含的示例：
+- `examples/saveandread.py` - 保存和读取元数据的示例
+- `examples/ai_metadata_example.py` - 处理AI生成图像的示例
+- `examples/bytes_example.py` - 直接处理图像字节的示例
 
 ## API参考 📚
 
 ### 主要函数
 
+#### 基于文件的函数
 - `hook_image_save()`：用嵌入元数据的版本替换matplotlib的savefig
 - `unhook_image_save()`：恢复原始的savefig函数
 - `get_image_info(image_path)`：从图像文件中提取元数据
-- `get_all_metadata_json(image_path)`：获取所有ImageForLLM特定的元数据（源注释、图表属性和AI元数据）作为可JSON序列化的字典。仅返回本库定义的元数据，不包含图像的其他数据。
-- `add_ai_metadata(image_path, model, prompt, parameters=None)`：为图像添加AI生成元数据
-- `extract_ai_metadata(image_path)`：仅从图像中提取AI特定元数据
+- `get_all_metadata_json(image_path)`：获取所有ImageForLLM特定的元数据作为可JSON序列化的字典
+- `add_ai_metadata(image_path, model, prompt, parameters=None)`：为图像文件添加AI生成元数据
+- `extract_ai_metadata(image_path)`：仅从图像文件中提取AI特定元数据
+
+#### 基于字节的函数
+- `get_image_info_from_bytes(image_bytes)`：从图像字节中提取元数据
+- `get_all_metadata_json_from_bytes(image_bytes)`：将图像字节中的所有元数据作为可JSON序列化的字典获取
+- `add_ai_metadata_to_bytes(image_bytes, model, prompt, parameters=None)`：为图像字节添加AI生成元数据并返回BytesIO对象
+- `extract_ai_metadata_from_bytes(image_bytes)`：仅从图像字节中提取AI特定元数据
 
 ### 常量
 

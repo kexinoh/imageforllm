@@ -173,17 +173,16 @@ def _extract_plot_properties(fig):
 
     return properties
 
-def get_image_info(image_path):
+def get_image_info_from_bytes(image_bytes):
     """
-    Extracts metadata embedded by imageforllm from an image file.
+    Extracts metadata embedded by imageforllm from image bytes.
 
     Args:
-        image_path: The path to the image file.
+        image_bytes (bytes): Bytes object containing the image data.
 
     Returns:
         A dictionary containing extracted metadata. Returns an empty
-        dictionary if the file is not found, not an image, or contains
-        no imageforllm metadata.
+        dictionary if the bytes are not an image or contain no imageforllm metadata.
         The source code, if found, will be under the key 'source_comment'.
         Automatically extracted plot properties, if found, will be under
         the key 'plot_properties'.
@@ -193,11 +192,7 @@ def get_image_info(image_path):
     metadata = {}
     img = None
     try:
-        if not os.path.exists(image_path):
-            warnings.warn(f"Image file not found: {image_path}")
-            return metadata
-
-        img = Image.open(image_path)
+        img = Image.open(io.BytesIO(image_bytes))
 
         if img.format == 'PNG' and img.info:
             # Try to load the combined JSON metadata first
@@ -207,9 +202,9 @@ def get_image_info(image_path):
                     # Update the main metadata dictionary with loaded data
                     metadata.update(loaded_metadata)
                 except json.JSONDecodeError:
-                    warnings.warn(f"Failed to decode JSON metadata from {image_path}.")
+                    warnings.warn("Failed to decode JSON metadata from image bytes.")
                 except Exception as e_load:
-                    warnings.warn(f"Error processing JSON metadata from {image_path}: {e_load}")
+                    warnings.warn(f"Error processing JSON metadata from image bytes: {e_load}")
 
             # Fallback/Compatibility: Check for old simple keys
             if METADATA_KEY_COMMENT in img.info and 'source_comment' not in metadata:
@@ -246,41 +241,70 @@ def get_image_info(image_path):
         else:
             warnings.warn(f"Metadata extraction currently fully supported only for PNG with embedded info. Image format is {img.format}.")
 
-    except FileNotFoundError:
-        warnings.warn(f"Image file not found during metadata extraction: {image_path}")
     except Exception as e:
-        warnings.warn(f"Error opening or reading metadata from image {image_path}: {e}")
+        warnings.warn(f"Error opening or reading metadata from image bytes: {e}")
     finally:
         if img:
             img.close()
 
     return metadata
 
-def add_ai_metadata(image_path, model, prompt, parameters=None):
+def get_image_info(image_path):
     """
-    Adds AI image generation metadata to an existing image file.
+    Extracts metadata embedded by imageforllm from an image file.
+
+    Args:
+        image_path (str): The path to the image file.
+
+    Returns:
+        A dictionary containing extracted metadata. Returns an empty
+        dictionary if the file is not found, not an image, or contains
+        no imageforllm metadata.
+        The source code, if found, will be under the key 'source_comment'.
+        Automatically extracted plot properties, if found, will be under
+        the key 'plot_properties'.
+        AI model information, if found, will be under keys 'ai_model', 'prompt', 
+        and 'parameters'.
+    """
+    try:
+        if not os.path.exists(image_path):
+            warnings.warn(f"Image file not found: {image_path}")
+            return {}
+            
+        with open(image_path, 'rb') as f:
+            image_bytes = f.read()
+            
+        return get_image_info_from_bytes(image_bytes)
+        
+    except FileNotFoundError:
+        warnings.warn(f"Image file not found during metadata extraction: {image_path}")
+        return {}
+    except Exception as e:
+        warnings.warn(f"Error reading image file {image_path}: {e}")
+        return {}
+
+def add_ai_metadata_to_bytes(image_bytes, model, prompt, parameters=None):
+    """
+    Adds AI image generation metadata to image bytes.
     
     Args:
-        image_path: The path to the image file.
-        model: The name/version of the AI model used to generate the image.
-        prompt: The prompt text used to generate the image.
-        parameters: Optional dictionary of additional generation parameters (e.g., seeds, styles).
+        image_bytes (bytes): Bytes object containing the image data.
+        model (str): The name/version of the AI model used to generate the image.
+        prompt (str): The prompt text used to generate the image.
+        parameters (dict, optional): Dictionary of additional generation parameters (e.g., seeds, styles).
         
     Returns:
-        bool: True if metadata was successfully added, False otherwise.
+        io.BytesIO: A BytesIO object containing the image with metadata.
+        Returns None if the operation fails.
     """
     img = None
     metadata_dict = {}
     try:
-        if not os.path.exists(image_path):
-            warnings.warn(f"Image file not found: {image_path}")
-            return False
-            
-        img = Image.open(image_path)
+        img = Image.open(io.BytesIO(image_bytes))
         
         if img.format != 'PNG':
             warnings.warn(f"Metadata embedding is primarily supported for PNG format. The image format is {img.format}.")
-            return False
+            return None
             
         # Prepare metadata
         metadata_dict[METADATA_KEY_AI_MODEL] = model
@@ -301,34 +325,79 @@ def add_ai_metadata(image_path, model, prompt, parameters=None):
         # Update with AI metadata
         existing_info.update(metadata_dict)
         
-        # Create temp buffer and save original image
-        buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        # Create a new BytesIO object for the result
+        result_buffer = io.BytesIO()
         
-        # Embed updated metadata and save
-        _embed_metadata_in_png(buffer, image_path, existing_info)
+        # Create PNG info object
+        pnginfo = PngImagePlugin.PngInfo()
         
-        return True
+        # Convert all metadata values to strings for compatibility
+        stringified_metadata = {str(k): str(v) if not isinstance(v, dict) else json.dumps(v) 
+                               for k, v in existing_info.items()}
+        
+        # Store metadata
+        pnginfo.add_text("imageforllm:metadata", json.dumps(stringified_metadata))
+        
+        # Also add individual keys for compatibility
+        for k, v in stringified_metadata.items():
+            pnginfo.add_text(k, v)
+            
+        # Save image with metadata to the result buffer
+        img.save(result_buffer, format='PNG', pnginfo=pnginfo)
+        result_buffer.seek(0)
+        return result_buffer
         
     except Exception as e:
-        warnings.warn(f"Failed to add AI metadata to {image_path}: {e}")
-        return False
+        warnings.warn(f"Failed to add AI metadata to image bytes: {e}")
+        return None
     finally:
         if img:
             img.close()
 
-def extract_ai_metadata(image_path):
+def add_ai_metadata(image_path, model, prompt, parameters=None):
     """
-    Extracts AI-specific metadata from an image file.
+    Adds AI image generation metadata to an existing image file.
     
     Args:
-        image_path: The path to the image file.
+        image_path (str): The path to the image file.
+        model (str): The name/version of the AI model used to generate the image.
+        prompt (str): The prompt text used to generate the image.
+        parameters (dict, optional): Dictionary of additional generation parameters (e.g., seeds, styles).
+        
+    Returns:
+        bool: True if metadata was successfully added, False otherwise.
+    """
+    try:
+        if not os.path.exists(image_path):
+            warnings.warn(f"Image file not found: {image_path}")
+            return False
+            
+        with open(image_path, 'rb') as f:
+            image_bytes = f.read()
+            
+        result_buffer = add_ai_metadata_to_bytes(image_bytes, model, prompt, parameters)
+        if result_buffer:
+            with open(image_path, 'wb') as f:
+                f.write(result_buffer.getvalue())
+            return True
+        return False
+        
+    except Exception as e:
+        warnings.warn(f"Failed to add AI metadata to {image_path}: {e}")
+        return False
+
+def extract_ai_metadata_from_bytes(image_bytes):
+    """
+    Extracts AI-specific metadata from image bytes.
+    
+    Args:
+        image_bytes (bytes): Bytes object containing the image data.
         
     Returns:
         dict: A dictionary containing AI metadata (model, prompt, parameters).
               Returns an empty dictionary if no AI metadata is found.
     """
-    all_info = get_image_info(image_path)
+    all_info = get_image_info_from_bytes(image_bytes)
     ai_metadata = {}
     
     if 'ai_model' in all_info:
@@ -342,18 +411,43 @@ def extract_ai_metadata(image_path):
         
     return ai_metadata
 
-def get_all_metadata_json(image_path):
+def extract_ai_metadata(image_path):
     """
-    Extracts all metadata from an image and returns it as a JSON-serializable dictionary.
+    Extracts AI-specific metadata from an image file.
     
     Args:
-        image_path: The path to the image file.
+        image_path (str): The path to the image file.
+        
+    Returns:
+        dict: A dictionary containing AI metadata (model, prompt, parameters).
+              Returns an empty dictionary if no AI metadata is found.
+    """
+    try:
+        if not os.path.exists(image_path):
+            warnings.warn(f"Image file not found: {image_path}")
+            return {}
+            
+        with open(image_path, 'rb') as f:
+            image_bytes = f.read()
+            
+        return extract_ai_metadata_from_bytes(image_bytes)
+        
+    except Exception as e:
+        warnings.warn(f"Error reading image file {image_path}: {e}")
+        return {}
+
+def get_all_metadata_json_from_bytes(image_bytes):
+    """
+    Extracts all metadata from image bytes and returns it as a JSON-serializable dictionary.
+    
+    Args:
+        image_bytes (bytes): Bytes object containing the image data.
         
     Returns:
         dict: A dictionary containing all metadata, suitable for JSON serialization.
               Returns an empty dictionary if no metadata is found.
     """
-    metadata = get_image_info(image_path)
+    metadata = get_image_info_from_bytes(image_bytes)
     
     # Convert any complex types to strings for JSON compatibility if needed
     for key, value in metadata.items():
@@ -362,8 +456,38 @@ def get_all_metadata_json(image_path):
             
     return metadata
 
+def get_all_metadata_json(image_path):
+    """
+    Extracts all metadata from an image file and returns it as a JSON-serializable dictionary.
+    
+    Args:
+        image_path (str): The path to the image file.
+        
+    Returns:
+        dict: A dictionary containing all metadata, suitable for JSON serialization.
+              Returns an empty dictionary if no metadata is found.
+    """
+    try:
+        if not os.path.exists(image_path):
+            warnings.warn(f"Image file not found: {image_path}")
+            return {}
+            
+        with open(image_path, 'rb') as f:
+            image_bytes = f.read()
+            
+        return get_all_metadata_json_from_bytes(image_bytes)
+        
+    except Exception as e:
+        warnings.warn(f"Error reading image file {image_path}: {e}")
+        return {}
+
 # Expose public functions
-__all__ = ['get_image_info', 'add_ai_metadata', 'extract_ai_metadata', 
-           'get_all_metadata_json', 'METADATA_KEY_COMMENT', 
-           'METADATA_KEY_PROPERTIES', 'METADATA_KEY_AI_MODEL',
-           'METADATA_KEY_PROMPT', 'METADATA_KEY_PARAMETERS'] 
+__all__ = [
+    'get_image_info', 'get_image_info_from_bytes',
+    'add_ai_metadata', 'add_ai_metadata_to_bytes',
+    'extract_ai_metadata', 'extract_ai_metadata_from_bytes',
+    'get_all_metadata_json', 'get_all_metadata_json_from_bytes',
+    'METADATA_KEY_COMMENT', 'METADATA_KEY_PROPERTIES', 
+    'METADATA_KEY_AI_MODEL', 'METADATA_KEY_PROMPT', 
+    'METADATA_KEY_PARAMETERS'
+] 

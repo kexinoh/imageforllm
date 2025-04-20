@@ -45,6 +45,7 @@ pip install Pillow
 - Extract embedded comment, properties, and AI metadata from images
 - Command-line tools for extracting metadata from images and adding AI metadata
 - Get all metadata as JSON for easy integration with other tools
+- **NEW**: Direct support for working with image byte objects (from base64 or URLs) via dedicated functions
 
 ## Usage 🚀
 
@@ -84,7 +85,7 @@ imageforllm.unhook_image_save()
 ```python
 import imageforllm
 
-# Add AI generation metadata to an existing image
+# Add AI metadata to an existing image file
 model = "stable-diffusion-xl-1.0"
 prompt = "A serene mountain landscape with a lake reflecting the sunset"
 parameters = {
@@ -94,6 +95,45 @@ parameters = {
 }
 
 imageforllm.add_ai_metadata('ai_generated_image.png', model, prompt, parameters)
+```
+
+### Working with Image Bytes Objects
+
+For direct work with image bytes (from base64, URLs, etc.), you can use the dedicated bytes-specific functions:
+
+```python
+import imageforllm
+import base64
+import requests
+import io
+
+# Example 1: Working with base64 encoded images
+base64_data = "..." # your base64 encoded image data
+img_bytes = base64.b64decode(base64_data)
+
+# Extract metadata from bytes using bytes-specific function
+metadata = imageforllm.get_all_metadata_json_from_bytes(img_bytes)
+print(metadata)
+
+# Add metadata to bytes and get BytesIO result
+result_buffer = imageforllm.add_ai_metadata_to_bytes(
+    img_bytes,
+    model="stable-diffusion-xl",
+    prompt="A city skyline",
+    parameters={"seed": 123}
+)
+# result_buffer is a BytesIO object you can use directly
+modified_bytes = result_buffer.getvalue()
+
+# Save the modified bytes to a file if needed
+with open("output_image.png", "wb") as f:
+    f.write(modified_bytes)
+
+# Example 2: Working with images from URLs
+response = requests.get("https://github.com/kexinoh/imageforllm/blob/main/examples/aigirl_with_metadata.png?raw=true")
+img_data = response.content
+ai_metadata = imageforllm.extract_ai_metadata_from_bytes(img_data)
+print(ai_metadata)
 ```
 
 ### Extracting Metadata 🔄
@@ -170,18 +210,28 @@ python -m imageforllm.ai_metadata image.png --model "stable-diffusion" --prompt 
 
 ## Example 📝
 
-See the included `examples/saveandread.py` for an example of saving and reading metadata, and `examples/ai_metadata_example.py` for working with AI-generated images.
+See the included examples:
+- `examples/saveandread.py` - saving and reading metadata
+- `examples/ai_metadata_example.py` - working with AI-generated images
+- `examples/bytes_example.py` - working with image bytes directly
 
 ## API Reference 📚
 
 ### Main Functions
 
+#### File-Based Functions
 - `hook_image_save()`: Replaces matplotlib's savefig with a version that embeds metadata
 - `unhook_image_save()`: Restores the original savefig function
 - `get_image_info(image_path)`: Extracts metadata from an image file
-- `get_all_metadata_json(image_path)`: Gets all ImageForLLM-specific metadata (source comment, plot properties, and AI metadata) as a JSON-serializable dictionary. Only returns metadata defined in this library, not any other image data.
-- `add_ai_metadata(image_path, model, prompt, parameters=None)`: Adds AI generation metadata to an image
-- `extract_ai_metadata(image_path)`: Extracts only AI-specific metadata from an image
+- `get_all_metadata_json(image_path)`: Gets all ImageForLLM-specific metadata as a JSON-serializable dictionary
+- `add_ai_metadata(image_path, model, prompt, parameters=None)`: Adds AI generation metadata to an image file
+- `extract_ai_metadata(image_path)`: Extracts only AI-specific metadata from an image file
+
+#### Bytes-Based Functions
+- `get_image_info_from_bytes(image_bytes)`: Extracts metadata from image bytes
+- `get_all_metadata_json_from_bytes(image_bytes)`: Gets all metadata from image bytes as a JSON-serializable dictionary
+- `add_ai_metadata_to_bytes(image_bytes, model, prompt, parameters=None)`: Adds AI generation metadata to image bytes and returns a BytesIO object
+- `extract_ai_metadata_from_bytes(image_bytes)`: Extracts only AI-specific metadata from image bytes
 
 ### Constants
 
